@@ -5,6 +5,8 @@ let rowNumberCols = [];
 
 // States: 0 = empty, 1 = filled, 2 = cross
 let fieldStates = [];
+let colNumberStates = [];
+let rowNumberStates = [];
 
 let isDragging = false;
 let isCreating = false;
@@ -15,6 +17,24 @@ let hasChosenDirection = false;
 let isDragHorizontal = false;
 let lastDragDistance = 0;
 let dragDistance = 0;
+
+for (let i = 0; i < 15; i++) {
+    let nums = Math.floor(Math.random() * 6) + 1;
+    colNumberStates.push([]);
+    for (let j = 0; j < nums; j++) {
+        let num = Math.floor(Math.random() * 15) + 1;
+        colNumberStates[i].push({ num: num, striked: false });
+    }
+
+    nums = Math.floor(Math.random() * 6) + 1;
+    rowNumberStates.push([]);
+    for (let j = 0; j < nums; j++) {
+        let num = Math.floor(Math.random() * 15) + 1;
+        rowNumberStates[i].push({ num: num, striked: false });
+    }
+}
+
+parseGameString("QWlgPDUmIURbdFhaR1I5YlNcfWwqQWxMczVCc0");
 
 loadGame();
 
@@ -39,11 +59,13 @@ function loadGame() {
         colNumbersDiv.appendChild(colNumbersColDiv);
         colNumberCols.push(colNumbersColDiv);
 
-        let numberDiv = document.createElement("div");
-        numberDiv.classList.add("number");
-        numberDiv.classList.add("colNumber");
-        numberDiv.innerHTML = col + 1;
-        colNumbersColDiv.appendChild(numberDiv);
+        for (let i = 0; i < colNumberStates[col].length; i++) {
+            let numberDiv = document.createElement("div");
+            numberDiv.classList.add("number");
+            numberDiv.classList.add("colNumber");
+            numberDiv.innerHTML = colNumberStates[col][i].num;
+            colNumbersColDiv.appendChild(numberDiv);
+        }
     }
 
     // Bottom
@@ -53,7 +75,7 @@ function loadGame() {
 
     // Row numbers
     let rowNumbersDiv = document.createElement("div");
-    rowNumbersDiv.id = "colNumbers";
+    rowNumbersDiv.id = "rowNumbers";
     bottomPartDiv.appendChild(rowNumbersDiv);
 
     for (let row = 0; row < 15; row++) {
@@ -62,11 +84,13 @@ function loadGame() {
         rowNumbersDiv.appendChild(rowNumbersColDiv);
         rowNumberCols.push(rowNumbersColDiv);
 
-        let numberDiv = document.createElement("div");
-        numberDiv.classList.add("number");
-        numberDiv.classList.add("rowNumber");
-        numberDiv.innerHTML = row + 1;
-        rowNumbersColDiv.appendChild(numberDiv);
+        for (let i = 0; i < rowNumberStates[row].length; i++) {
+            let numberDiv = document.createElement("div");
+            numberDiv.classList.add("number");
+            numberDiv.classList.add("rowNumber");
+            numberDiv.innerHTML = rowNumberStates[row][i].num;
+            rowNumbersColDiv.appendChild(numberDiv);
+        }
     }
 
 
@@ -379,4 +403,33 @@ function getStateClass(state) {
         return "cross";
     }
     throw "Unknown state";
+}
+
+function parseGameString(base64) {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+    let fields = [];
+    for (let i = 0; i < base64.length; i++) {
+        let val = chars.indexOf(base64[i]);
+        fields.push((val & 32) > 0);
+        fields.push((val & 16) > 0);
+        fields.push((val & 8) > 0);
+        fields.push((val & 4) > 0);
+        fields.push((val & 2) > 0);
+        fields.push((val & 1) > 0);
+    }
+
+    if (fields.length < 225) {
+        throw "Game string too short";
+    }
+
+    let board = [];
+    for (let i = 0; i < 15; i++) {
+        board.push([]);
+        for (let j = 0; j < 15; j++) {
+            board[i][j] = fields[i * 15 + j];
+        }
+    }
+    console.log(board);
+    return board;
 }
