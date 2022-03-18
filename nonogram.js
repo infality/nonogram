@@ -18,25 +18,51 @@ let isDragHorizontal = false;
 let lastDragDistance = 0;
 let dragDistance = 0;
 
-for (let i = 0; i < 15; i++) {
-    let nums = Math.floor(Math.random() * 6) + 1;
-    colNumberStates.push([]);
-    for (let j = 0; j < nums; j++) {
-        let num = Math.floor(Math.random() * 15) + 1;
-        colNumberStates[i].push({ num: num, striked: false });
-    }
+let board = parseGameString("QulgPDUmIURbdFhaR1I5YlNcfWwqQWxMczVCc0");
 
-    nums = Math.floor(Math.random() * 6) + 1;
-    rowNumberStates.push([]);
-    for (let j = 0; j < nums; j++) {
-        let num = Math.floor(Math.random() * 15) + 1;
-        rowNumberStates[i].push({ num: num, striked: false });
+loadNumberStates(board);
+
+loadGame();
+
+
+function loadNumberStates(board) {
+    for (let i = 0; i < 15; i++) {
+        let col = [];
+        for (let j = 0; j < 15; j++) {
+            col.push(board[j][i]);
+        }
+        let nums = getSequenceNumbers(col);
+        colNumberStates.push([]);
+        nums.forEach(num => {
+            colNumberStates[i].push({ num: num, striked: false });
+        });
+
+        nums = getSequenceNumbers(board[i]);
+        rowNumberStates.push([]);
+        nums.forEach(num => {
+            rowNumberStates[i].push({ num: num, striked: false });
+        });
     }
 }
 
-parseGameString("QWlgPDUmIURbdFhaR1I5YlNcfWwqQWxMczVCc0");
-
-loadGame();
+function getSequenceNumbers(array) {
+    let nums = [];
+    let count = 0;
+    array.forEach(field => {
+        if (field) {
+            count++;
+        } else {
+            if (count > 0) {
+                nums.push(count);
+                count = 0;
+            }
+        }
+    });
+    if (count > 0) {
+        nums.push(count);
+    }
+    return nums;
+}
 
 function loadGame() {
     let gameDiv = document.createElement("div");
@@ -137,9 +163,21 @@ function loadGame() {
 
     document.addEventListener("mouseup", _ => {
         isDragging = false;
-        for (let i = 0; i < dimensionSize; i++) {
+        /* for (let i = 0; i < dimensionSize; i++) {
             fieldStates[dragStartRow][i] = getState(dragStartRow, i);;
             fieldStates[i][dragStartCol] = getState(i, dragStartCol);;
+            updateNumberStates(i, i);
+        } */
+        if (isDragHorizontal) {
+            for (let col = Math.min(dragStartCol, dragStartCol + dragDistance); col <= Math.max(dragStartCol, dragStartCol + dragDistance); col++) {
+                fieldStates[dragStartRow][col] = getState(dragStartRow, col);
+                updateNumberStates(dragStartRow, col);
+            }
+        } else {
+            for (let row = Math.min(dragStartRow, dragStartRow + dragDistance); row <= Math.max(dragStartRow, dragStartRow + dragDistance); row++) {
+                fieldStates[row][dragStartCol] = getState(row, dragStartCol);
+                updateNumberStates(row, dragStartCol);
+            }
         }
     });
 
@@ -225,6 +263,7 @@ function loadGame() {
             dragStartCol = currentCol;
             hasChosenDirection = false;
             lastDragDistance = 0;
+            dragDistance = 0;
         });
 
         x.addEventListener("mousemove", e => {
@@ -345,24 +384,80 @@ function loadGame() {
     });
 }
 
-function setField(row, col, state) {
-    if (state == 1) {
-        fillField(row, col);
-    } else if (state == 2) {
-        crossField(row, col);
-    } else {
-        throw "Invalid state";
+function updateNumberStates(row, col) {
+    // Column
+    let sequence = [];
+    for (let i = 0; i < 15; i++) {
+        sequence.push(fieldStates[i][col] == 1);
+    }
+    let nums = getSequenceNumbers(sequence);
+
+    let lastIndex = nums.length;
+    for (let i = 0; i < colNumberStates[col].length; i++) { // Forwards
+        if (i < nums.length && nums[i] == colNumberStates[col][i].num) {
+            strikeColNumber(col, i);
+        } else {
+            lastIndex = i;
+            break;
+        }
+    }
+    let numLength = colNumberStates[col].length;
+    let matching = true;
+    for (let i = 0; i < numLength - lastIndex; i++) { // Backwards
+        if (matching && i < nums.length - lastIndex && nums[nums.length - i - 1] == colNumberStates[col][numLength - i - 1].num) {
+            strikeColNumber(col, numLength - i - 1);
+        } else {
+            unstrikeColNumber(col, numLength - i - 1);
+            matching = false;
+        }
+    }
+
+    // Row
+    sequence = [];
+    for (let i = 0; i < 15; i++) {
+        sequence.push(fieldStates[row][i] == 1);
+    }
+    nums = getSequenceNumbers(sequence);
+
+    lastIndex = nums.length;
+    for (let i = 0; i < rowNumberStates[row].length; i++) { // Forwards
+        if (i < nums.length && nums[i] == rowNumberStates[row][i].num) {
+            strikeRowNumber(row, i);
+        } else {
+            lastIndex = i;
+            break;
+        }
+    }
+    numLength = rowNumberStates[row].length;
+    matching = true;
+    for (let i = 0; i < numLength - lastIndex; i++) { // Backwards
+        if (matching && i < nums.length - lastIndex && nums[nums.length - i - 1] == rowNumberStates[row][numLength - i - 1].num) {
+            strikeRowNumber(row, numLength - i - 1);
+        } else {
+            unstrikeRowNumber(row, numLength - i - 1);
+            matching = false;
+        }
     }
 }
 
-function unsetField(row, col, state) {
-    if (state == 1) {
-        unfillField(row, col);
-    } else if (state == 2) {
-        uncrossField(row, col);
-    } else {
-        throw "Invalid state";
-    }
+function strikeColNumber(col, index) {
+    colNumberStates[col][index].striked = true;
+    colNumberCols[col].childNodes[index].classList.add("striked");
+}
+
+function unstrikeColNumber(col, index) {
+    colNumberStates[col][index].striked = false;
+    colNumberCols[col].childNodes[index].classList.remove("striked");
+}
+
+function strikeRowNumber(row, index) {
+    rowNumberStates[row][index].striked = true;
+    rowNumberCols[row].childNodes[index].classList.add("striked");
+}
+
+function unstrikeRowNumber(row, index) {
+    rowNumberStates[row][index].striked = false;
+    rowNumberCols[row].childNodes[index].classList.remove("striked");
 }
 
 function fillField(row, col) {
