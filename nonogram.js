@@ -18,8 +18,9 @@ let isDragHorizontal = false;
 let lastDragDistance = 0;
 let dragDistance = 0;
 
+//let board = parseGameString("BwACAA4APgA4BVUO7hVUO7nd3f/z/+f/3////4");
 //let board = parseGameString("DfAeZBj5cWPHZ4NOA/gFZAeYH3D0B+we2Hwf6A");
-let board = parseGameString("BwACAA4APgA4BVUO7hVUO7nd3f/z/+f/3////4");
+let board = parseGameString("A+AIfAHWAMcBw+eMexIGLwh7+eGeZhhIMJCQkA");
 
 loadNumberStates(board);
 
@@ -29,13 +30,104 @@ solve();
 
 
 function solve() {
-    getColCandidates(11);
-    /* for (let i = 0; i < dimensionSize; i++) {
-        solveCol(i);
-    }
+    let colCandidates = [];
+    let rowCandidates = [];
+    let queue = [];
     for (let i = 0; i < dimensionSize; i++) {
-        solveRow(i);
-    } */
+        colCandidates.push(getColCandidates(i));
+        rowCandidates.push(getRowCandidates(i));
+        queue.push({ isRow: false, index: i });
+        queue.push({ isRow: true, index: i });
+    }
+
+    while (queue.length > 0) {
+        let q = queue.shift();
+        if (q.isRow) {
+            cleanAndOverlapRowCandidates(rowCandidates, q.index, queue);
+        } else {
+            cleanAndOverlapColCandidates(colCandidates, q.index, queue);
+        }
+    }
+    if (rowCandidates.some(x => x.length == 0) || colCandidates.some(x = x.length == 0)) {
+        alert("No solution found");
+    }
+    if (rowCandidates.some(x => x.length > 1) || colCandidates.some(x = x.length > 1)) {
+        alert("More than one solution found");
+    }
+}
+
+function cleanAndOverlapColCandidates(colCandidates, col, queue) {
+    for (let row = 0; row < dimensionSize; row++) {
+        let bitPosition = dimensionSize - row - 1;
+        if (fieldStates[row][col] == 1) {
+            colCandidates[col] = colCandidates[col].filter(x => getBit(x, bitPosition));
+        } else if (fieldStates[row][col] == 2) {
+            colCandidates[col] = colCandidates[col].filter(x => !getBit(x, bitPosition));
+        }
+    }
+
+    for (let row = 0; row < dimensionSize; row++) {
+        if (fieldStates[row][col] != 0) {
+            continue;
+        }
+
+        let bitPosition = dimensionSize - row - 1;
+        let state = getBit(colCandidates[col][0], bitPosition);
+        let allEqual = true;
+        for (let i = 1; i < colCandidates[col].length; i++) {
+            if (getBit(colCandidates[col][i], bitPosition) != state) {
+                allEqual = false;
+                break;
+            }
+        }
+
+        if (allEqual) {
+            fieldStates[row][col] = state ? 1 : 2;
+            fields[row][col].classList.add(state ? "square" : "cross");
+            if (!queue.some(x => x.isRow && x.index == row)) {
+                queue.push({ isRow: true, index: row });
+            }
+        }
+    }
+}
+
+function cleanAndOverlapRowCandidates(rowCandidates, row, queue) {
+    for (let col = 0; col < dimensionSize; col++) {
+        let bitPosition = dimensionSize - col - 1;
+        if (fieldStates[row][col] == 1) {
+            rowCandidates[row] = rowCandidates[row].filter(x => getBit(x, bitPosition));
+        } else if (fieldStates[row][col] == 2) {
+            rowCandidates[row] = rowCandidates[row].filter(x => !getBit(x, bitPosition));
+        }
+    }
+
+    for (let col = 0; col < dimensionSize; col++) {
+        if (fieldStates[row][col] != 0) {
+            continue;
+        }
+
+        let bitPosition = dimensionSize - col - 1;
+        let state = getBit(rowCandidates[row][0], bitPosition);
+        let allEqual = true;
+        for (let i = 1; i < rowCandidates[row].length; i++) {
+            if (getBit(rowCandidates[row][i], bitPosition) != state) {
+                allEqual = false;
+                break;
+            }
+        }
+
+        if (allEqual) {
+            fieldStates[row][col] = state ? 1 : 2;
+            fields[row][col].classList.add(state ? "square" : "cross");
+            if (!queue.some(x => !x.isRow && x.index == col)) {
+                queue.push({ isRow: false, index: col });
+            }
+        }
+    }
+}
+
+function getBit(num, position) {
+    return (num & Math.pow(2, position)) > 0;
 }
 
 function getColCandidates(col) {
@@ -70,7 +162,6 @@ function getColCandidates(col) {
                 candidate |= (Math.pow(2, n) - 1) << (dimensionSize - offset - n);
                 offset += n;
             }
-            console.log(candidate.toString(2));
             candidates.push(candidate);
             lastReset = borders.length;
             borders[borders.length - 1]++;
@@ -133,142 +224,6 @@ function getRowCandidates(row) {
         }
     }
     return candidates;
-}
-
-function solveCol(col) {
-    let candidates = new Array(dimensionSize).fill(-1);
-    let current = 0;
-    for (let numIndex = 0; numIndex < colNumberStates[col].length; numIndex++) {
-        if (numIndex > 0) {
-            candidates[current] = numIndex * 2 - 1;
-            current++;
-        }
-
-        let emptyFields = 0;
-        for (let row = current; row < dimensionSize; row++) {
-            if (fieldStates[row][col] != 2) {
-                emptyFields += 1;
-            } else {
-                for (let i = current; i < current + emptyFields; i++) {
-                    candidates[i] = numIndex * 2 - 1;
-                }
-                emptyFields = 0;
-            }
-
-            if (emptyFields == colNumberStates[col][numIndex].num) {
-                for (let i = current; i < current + emptyFields; i++) {
-                    candidates[i] = numIndex * 2;
-                }
-                current = row + 1;
-                break;
-            }
-        }
-    }
-
-    current = dimensionSize - 1;
-    for (let numIndex = colNumberStates[col].length - 1; numIndex >= 0; numIndex--) {
-        if (numIndex < colNumberStates[col].length - 1) {
-            if (candidates[current] == numIndex * 2 + 1) {
-                fields[current][col].classList.add("cross");
-                fieldStates[current][col] = 2;
-            }
-            current--;
-        }
-
-        let emptyFields = 0;
-        for (let row = current; row >= 0; row--) {
-            if (fieldStates[row][col] != 2) {
-                emptyFields += 1;
-            } else {
-                for (let i = current; i < current + emptyFields; i++) {
-                    if (candidates[i] == numIndex * 2 - 1) {
-                        fields[i][col].classList.add("cross");
-                        fieldStates[i][col] = 2;
-                    }
-                }
-                emptyFields = 0;
-            }
-
-            if (emptyFields == colNumberStates[col][numIndex].num) {
-                for (let i = current; i > current - emptyFields; i--) {
-                    if (candidates[i] == numIndex * 2) {
-                        fields[i][col].classList.add("square");
-                        fieldStates[i][col] = 1;
-                    }
-                }
-                current = row - 1;
-                break;
-            }
-        }
-    }
-}
-
-function solveRow(row) {
-    let candidates = new Array(dimensionSize).fill(-1);
-    let current = 0;
-    for (let numIndex = 0; numIndex < rowNumberStates[row].length; numIndex++) {
-        if (numIndex > 0) {
-            candidates[current] = numIndex * 2 - 1;
-            current++;
-        }
-
-        let emptyFields = 0;
-        for (let col = current; col < dimensionSize; col++) {
-            if (fieldStates[row][col] != 2) {
-                emptyFields += 1;
-            } else {
-                for (let i = current; i < current + emptyFields; i++) {
-                    candidates[i] = numIndex * 2 - 1;
-                }
-                emptyFields = 0;
-            }
-
-            if (emptyFields == rowNumberStates[row][numIndex].num) {
-                for (let i = current; i < current + emptyFields; i++) {
-                    candidates[i] = numIndex * 2;
-                }
-                current = col + 1;
-                break;
-            }
-        }
-    }
-
-    current = dimensionSize - 1;
-    for (let numIndex = rowNumberStates[row].length - 1; numIndex >= 0; numIndex--) {
-        if (numIndex < rowNumberStates[row].length - 1) {
-            if (candidates[current] == numIndex * 2 + 1) {
-                fields[row][current].classList.add("cross");
-                fieldStates[row][current] = 2;
-            }
-            current--;
-        }
-
-        let emptyFields = 0;
-        for (let col = current; col >= 0; col--) {
-            if (fieldStates[row][col] != 2) {
-                emptyFields += 1;
-            } else {
-                for (let i = current; i < current + emptyFields; i++) {
-                    if (candidates[i] == numIndex * 2 - 1) {
-                        fields[row][i].classList.add("cross");
-                        fieldStates[row][i] = 2;
-                    }
-                }
-                emptyFields = 0;
-            }
-
-            if (emptyFields == rowNumberStates[row][numIndex].num) {
-                for (let i = current; i > current - emptyFields; i--) {
-                    if (candidates[i] == numIndex * 2) {
-                        fields[row][i].classList.add("square");
-                        fieldStates[row][i] = 1;
-                    }
-                }
-                current = col - 1;
-                break;
-            }
-        }
-    }
 }
 
 function loadNumberStates(board) {
