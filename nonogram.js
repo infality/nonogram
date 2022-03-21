@@ -18,17 +18,263 @@ let isDragHorizontal = false;
 let lastDragDistance = 0;
 let dragDistance = 0;
 
-let board = parseGameString("QulgPDUmIURbdFhaR1I5YlNcfWwqQWxMczVCc0");
+//let board = parseGameString("DfAeZBj5cWPHZ4NOA/gFZAeYH3D0B+we2Hwf6A");
+let board = parseGameString("BwACAA4APgA4BVUO7hVUO7nd3f/z/+f/3////4");
 
 loadNumberStates(board);
 
 loadGame();
 
+solve();
+
+
+function solve() {
+    getColCandidates(11);
+    /* for (let i = 0; i < dimensionSize; i++) {
+        solveCol(i);
+    }
+    for (let i = 0; i < dimensionSize; i++) {
+        solveRow(i);
+    } */
+}
+
+function getColCandidates(col) {
+    let candidates = [];
+    if (colNumberStates[col].length == 1 && colNumberStates[col][0] == 0) {
+        candidates.push(0);
+        return;
+    }
+
+    let colSum = 0;
+    colNumberStates[col].forEach(s => {
+        colSum += s.num;
+    });
+    let borders = new Array(colNumberStates[col].length).fill(1);
+    borders[0] = 0;
+
+    let lastReset = borders.length;
+    while (true) {
+        let borderSum = 0;
+        borders.forEach(b => {
+            borderSum += b;
+        });
+
+        if (colSum + borderSum <= dimensionSize) {
+            // Store candidate as binary flags in form of number
+            let candidate = 0;
+            let offset = 0;
+            for (let i = 0; i < borders.length; i++) {
+                offset += borders[i];
+
+                let n = colNumberStates[col][i].num;
+                candidate |= (Math.pow(2, n) - 1) << (dimensionSize - offset - n);
+                offset += n;
+            }
+            console.log(candidate.toString(2));
+            candidates.push(candidate);
+            lastReset = borders.length;
+            borders[borders.length - 1]++;
+
+        } else {
+            if (lastReset == 1) {
+                break;
+            }
+            lastReset--;
+            borders[lastReset] = 1;
+            borders[lastReset - 1]++;
+        }
+    }
+    return candidates;
+}
+
+function getRowCandidates(row) {
+    let candidates = [];
+    if (rowNumberStates[row].length == 1 && rowNumberStates[row][0] == 0) {
+        candidates.push(0);
+        return;
+    }
+
+    let rowSum = 0;
+    rowNumberStates[row].forEach(s => {
+        rowSum += s.num;
+    });
+    let borders = new Array(rowNumberStates[row].length).fill(1);
+    borders[0] = 0;
+
+    let lastReset = borders.length;
+    while (true) {
+        let borderSum = 0;
+        borders.forEach(b => {
+            borderSum += b;
+        });
+
+        if (rowSum + borderSum <= dimensionSize) {
+            // Store candidate as binary flags in form of number
+            let candidate = 0;
+            let offset = 0;
+            for (let i = 0; i < borders.length; i++) {
+                offset += borders[i];
+
+                let n = rowNumberStates[row][i].num;
+                candidate |= (Math.pow(2, n) - 1) << (dimensionSize - offset - n);
+                offset += n;
+            }
+            candidates.push(candidate);
+            lastReset = borders.length;
+            borders[borders.length - 1]++;
+
+        } else {
+            if (lastReset == 1) {
+                break;
+            }
+            lastReset--;
+            borders[lastReset] = 1;
+            borders[lastReset - 1]++;
+        }
+    }
+    return candidates;
+}
+
+function solveCol(col) {
+    let candidates = new Array(dimensionSize).fill(-1);
+    let current = 0;
+    for (let numIndex = 0; numIndex < colNumberStates[col].length; numIndex++) {
+        if (numIndex > 0) {
+            candidates[current] = numIndex * 2 - 1;
+            current++;
+        }
+
+        let emptyFields = 0;
+        for (let row = current; row < dimensionSize; row++) {
+            if (fieldStates[row][col] != 2) {
+                emptyFields += 1;
+            } else {
+                for (let i = current; i < current + emptyFields; i++) {
+                    candidates[i] = numIndex * 2 - 1;
+                }
+                emptyFields = 0;
+            }
+
+            if (emptyFields == colNumberStates[col][numIndex].num) {
+                for (let i = current; i < current + emptyFields; i++) {
+                    candidates[i] = numIndex * 2;
+                }
+                current = row + 1;
+                break;
+            }
+        }
+    }
+
+    current = dimensionSize - 1;
+    for (let numIndex = colNumberStates[col].length - 1; numIndex >= 0; numIndex--) {
+        if (numIndex < colNumberStates[col].length - 1) {
+            if (candidates[current] == numIndex * 2 + 1) {
+                fields[current][col].classList.add("cross");
+                fieldStates[current][col] = 2;
+            }
+            current--;
+        }
+
+        let emptyFields = 0;
+        for (let row = current; row >= 0; row--) {
+            if (fieldStates[row][col] != 2) {
+                emptyFields += 1;
+            } else {
+                for (let i = current; i < current + emptyFields; i++) {
+                    if (candidates[i] == numIndex * 2 - 1) {
+                        fields[i][col].classList.add("cross");
+                        fieldStates[i][col] = 2;
+                    }
+                }
+                emptyFields = 0;
+            }
+
+            if (emptyFields == colNumberStates[col][numIndex].num) {
+                for (let i = current; i > current - emptyFields; i--) {
+                    if (candidates[i] == numIndex * 2) {
+                        fields[i][col].classList.add("square");
+                        fieldStates[i][col] = 1;
+                    }
+                }
+                current = row - 1;
+                break;
+            }
+        }
+    }
+}
+
+function solveRow(row) {
+    let candidates = new Array(dimensionSize).fill(-1);
+    let current = 0;
+    for (let numIndex = 0; numIndex < rowNumberStates[row].length; numIndex++) {
+        if (numIndex > 0) {
+            candidates[current] = numIndex * 2 - 1;
+            current++;
+        }
+
+        let emptyFields = 0;
+        for (let col = current; col < dimensionSize; col++) {
+            if (fieldStates[row][col] != 2) {
+                emptyFields += 1;
+            } else {
+                for (let i = current; i < current + emptyFields; i++) {
+                    candidates[i] = numIndex * 2 - 1;
+                }
+                emptyFields = 0;
+            }
+
+            if (emptyFields == rowNumberStates[row][numIndex].num) {
+                for (let i = current; i < current + emptyFields; i++) {
+                    candidates[i] = numIndex * 2;
+                }
+                current = col + 1;
+                break;
+            }
+        }
+    }
+
+    current = dimensionSize - 1;
+    for (let numIndex = rowNumberStates[row].length - 1; numIndex >= 0; numIndex--) {
+        if (numIndex < rowNumberStates[row].length - 1) {
+            if (candidates[current] == numIndex * 2 + 1) {
+                fields[row][current].classList.add("cross");
+                fieldStates[row][current] = 2;
+            }
+            current--;
+        }
+
+        let emptyFields = 0;
+        for (let col = current; col >= 0; col--) {
+            if (fieldStates[row][col] != 2) {
+                emptyFields += 1;
+            } else {
+                for (let i = current; i < current + emptyFields; i++) {
+                    if (candidates[i] == numIndex * 2 - 1) {
+                        fields[row][i].classList.add("cross");
+                        fieldStates[row][i] = 2;
+                    }
+                }
+                emptyFields = 0;
+            }
+
+            if (emptyFields == rowNumberStates[row][numIndex].num) {
+                for (let i = current; i > current - emptyFields; i--) {
+                    if (candidates[i] == numIndex * 2) {
+                        fields[row][i].classList.add("square");
+                        fieldStates[row][i] = 1;
+                    }
+                }
+                current = col - 1;
+                break;
+            }
+        }
+    }
+}
 
 function loadNumberStates(board) {
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < dimensionSize; i++) {
         let col = [];
-        for (let j = 0; j < 15; j++) {
+        for (let j = 0; j < dimensionSize; j++) {
             col.push(board[j][i]);
         }
         let nums = getSequenceNumbers(col);
@@ -58,7 +304,7 @@ function getSequenceNumbers(array) {
             }
         }
     });
-    if (count > 0) {
+    if (count > 0 || nums.length == 0) {
         nums.push(count);
     }
     return nums;
