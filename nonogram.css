@@ -13,6 +13,69 @@ body {
     height: 100vh;
 }
 
+
+/* Overview */
+
+#overview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 20vh;
+    width: 80vw;
+}
+
+#progress {
+    display: flex;
+    width: 40%;
+    height: 3vh;
+    background-color: #444;
+    position: absolute;
+}
+
+#progressBar {
+    height: 100%;
+    background-color: #999;
+    position: absolute;
+}
+
+#progressInfo {
+    align-self: center;
+    width: 100%;
+    text-align: center;
+    color: #bbb;
+    font-size: 2vh;
+}
+
+#gamePreviews {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #666;
+    box-sizing: border-box;
+}
+
+.gamePreviewRow {
+    display: flex;
+}
+
+.gamePreview {
+    border: 1px solid #444;
+    box-sizing: border-box;
+    cursor: pointer;
+}
+
+.gamePreview:hover {
+    background-color: #333;
+}
+
+
+/* Game */
+
 #game {
     display: flex;
     flex-direction: column;

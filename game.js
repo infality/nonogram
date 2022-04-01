@@ -18,16 +18,6 @@ let isDragHorizontal = false;
 let lastDragDistance = 0;
 let dragDistance = 0;
 
-//let board = parseGameString("BwACAA4APgA4BVUO7hVUO7nd3f/z/+f/3////4");
-//let board = parseGameString("DfAeZBj5cWPHZ4NOA/gFZAeYH3D0B+we2Hwf6A");
-let board = parseGameString("A+AIfAHWAMcBw+eMexIGLwh7+eGeZhhIMJCQkA");
-
-loadNumberStates(board);
-
-loadGame();
-
-solve();
-
 
 function solve() {
     let colCandidates = [];
