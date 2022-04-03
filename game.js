@@ -1,22 +1,30 @@
-let dimensionSize = 15;
-let fields = []
-let colNumberCols = [];
-let rowNumberCols = [];
+const dimensionSize = 15;
+let gameState = {};
 
-// States: 0 = empty, 1 = filled, 2 = cross
-let fieldStates = [];
-let colNumberStates = [];
-let rowNumberStates = [];
+function getDefaultGameState() {
+    let state = {};
+    state.startDate = new Date().getTime();
+    state.timer = null;
+    state.fields = []
+    state.colNumberCols = [];
+    state.rowNumberCols = [];
 
-let isDragging = false;
-let isCreating = false;
-let dragFieldState = 0;
-let dragStartRow = null;
-let dragStartCol = null;
-let hasChosenDirection = false;
-let isDragHorizontal = false;
-let lastDragDistance = 0;
-let dragDistance = 0;
+    // States: 0 = empty, 1 = filled, 2 = cross
+    state.fieldStates = [];
+    state.colNumberStates = [];
+    state.rowNumberStates = [];
+
+    state.isDragging = false;
+    state.isCreating = false;
+    state.dragFieldState = 0;
+    state.dragStartRow = null;
+    state.dragStartCol = null;
+    state.hasChosenDirection = false;
+    state.isDragHorizontal = false;
+    state.lastDragDistance = 0;
+    state.dragDistance = 0;
+    return state;
+}
 
 
 function solve() {
@@ -49,15 +57,15 @@ function solve() {
 function cleanAndOverlapColCandidates(colCandidates, col, queue) {
     for (let row = 0; row < dimensionSize; row++) {
         let bitPosition = dimensionSize - row - 1;
-        if (fieldStates[row][col] == 1) {
+        if (gameState.fieldStates[row][col] == 1) {
             colCandidates[col] = colCandidates[col].filter(x => getBit(x, bitPosition));
-        } else if (fieldStates[row][col] == 2) {
+        } else if (gameState.fieldStates[row][col] == 2) {
             colCandidates[col] = colCandidates[col].filter(x => !getBit(x, bitPosition));
         }
     }
 
     for (let row = 0; row < dimensionSize; row++) {
-        if (fieldStates[row][col] != 0) {
+        if (gameState.fieldStates[row][col] != 0) {
             continue;
         }
 
@@ -72,8 +80,8 @@ function cleanAndOverlapColCandidates(colCandidates, col, queue) {
         }
 
         if (allEqual) {
-            fieldStates[row][col] = state ? 1 : 2;
-            fields[row][col].classList.add(state ? "square" : "cross");
+            gameState.fieldStates[row][col] = state ? 1 : 2;
+            gameState.fields[row][col].classList.add(state ? "square" : "cross");
             if (!queue.some(x => x.isRow && x.index == row)) {
                 queue.push({ isRow: true, index: row });
             }
@@ -84,15 +92,15 @@ function cleanAndOverlapColCandidates(colCandidates, col, queue) {
 function cleanAndOverlapRowCandidates(rowCandidates, row, queue) {
     for (let col = 0; col < dimensionSize; col++) {
         let bitPosition = dimensionSize - col - 1;
-        if (fieldStates[row][col] == 1) {
+        if (gameState.fieldStates[row][col] == 1) {
             rowCandidates[row] = rowCandidates[row].filter(x => getBit(x, bitPosition));
-        } else if (fieldStates[row][col] == 2) {
+        } else if (gameState.fieldStates[row][col] == 2) {
             rowCandidates[row] = rowCandidates[row].filter(x => !getBit(x, bitPosition));
         }
     }
 
     for (let col = 0; col < dimensionSize; col++) {
-        if (fieldStates[row][col] != 0) {
+        if (gameState.fieldStates[row][col] != 0) {
             continue;
         }
 
@@ -107,8 +115,8 @@ function cleanAndOverlapRowCandidates(rowCandidates, row, queue) {
         }
 
         if (allEqual) {
-            fieldStates[row][col] = state ? 1 : 2;
-            fields[row][col].classList.add(state ? "square" : "cross");
+            gameState.fieldStates[row][col] = state ? 1 : 2;
+            gameState.fields[row][col].classList.add(state ? "square" : "cross");
             if (!queue.some(x => !x.isRow && x.index == col)) {
                 queue.push({ isRow: false, index: col });
             }
@@ -122,16 +130,16 @@ function getBit(num, position) {
 
 function getColCandidates(col) {
     let candidates = [];
-    if (colNumberStates[col].length == 1 && colNumberStates[col][0] == 0) {
+    if (gameState.colNumberStates[col].length == 1 && gameState.colNumberStates[col][0] == 0) {
         candidates.push(0);
         return;
     }
 
     let colSum = 0;
-    colNumberStates[col].forEach(s => {
+    gameState.colNumberStates[col].forEach(s => {
         colSum += s.num;
     });
-    let borders = new Array(colNumberStates[col].length).fill(1);
+    let borders = new Array(gameState.colNumberStates[col].length).fill(1);
     borders[0] = 0;
 
     let lastReset = borders.length;
@@ -148,7 +156,7 @@ function getColCandidates(col) {
             for (let i = 0; i < borders.length; i++) {
                 offset += borders[i];
 
-                let n = colNumberStates[col][i].num;
+                let n = gameState.colNumberStates[col][i].num;
                 candidate |= (Math.pow(2, n) - 1) << (dimensionSize - offset - n);
                 offset += n;
             }
@@ -170,16 +178,16 @@ function getColCandidates(col) {
 
 function getRowCandidates(row) {
     let candidates = [];
-    if (rowNumberStates[row].length == 1 && rowNumberStates[row][0] == 0) {
+    if (gameState.rowNumberStates[row].length == 1 && gameState.rowNumberStates[row][0] == 0) {
         candidates.push(0);
         return;
     }
 
     let rowSum = 0;
-    rowNumberStates[row].forEach(s => {
+    gameState.rowNumberStates[row].forEach(s => {
         rowSum += s.num;
     });
-    let borders = new Array(rowNumberStates[row].length).fill(1);
+    let borders = new Array(gameState.rowNumberStates[row].length).fill(1);
     borders[0] = 0;
 
     let lastReset = borders.length;
@@ -196,7 +204,7 @@ function getRowCandidates(row) {
             for (let i = 0; i < borders.length; i++) {
                 offset += borders[i];
 
-                let n = rowNumberStates[row][i].num;
+                let n = gameState.rowNumberStates[row][i].num;
                 candidate |= (Math.pow(2, n) - 1) << (dimensionSize - offset - n);
                 offset += n;
             }
@@ -223,15 +231,15 @@ function loadNumberStates(board) {
             col.push(board[j][i]);
         }
         let nums = getSequenceNumbers(col);
-        colNumberStates.push([]);
+        gameState.colNumberStates.push([]);
         nums.forEach(num => {
-            colNumberStates[i].push({ num: num, striked: false });
+            gameState.colNumberStates[i].push({ num: num, striked: false });
         });
 
         nums = getSequenceNumbers(board[i]);
-        rowNumberStates.push([]);
+        gameState.rowNumberStates.push([]);
         nums.forEach(num => {
-            rowNumberStates[i].push({ num: num, striked: false });
+            gameState.rowNumberStates[i].push({ num: num, striked: false });
         });
     }
 }
@@ -255,10 +263,48 @@ function getSequenceNumbers(array) {
     return nums;
 }
 
-function loadGame() {
+function loadGame(exitFn) {
+    let outerBlockDiv = document.createElement("div");
+    outerBlockDiv.id = "outerBlock";
+    document.body.appendChild(outerBlockDiv);
+
+    // Controls header
+    let controlsHeaderDiv = document.createElement("div");
+    controlsHeaderDiv.id = "controlsHeader";
+    outerBlockDiv.appendChild(controlsHeaderDiv);
+
+    let backButton = document.createElement("button");
+    backButton.id = "backButton";
+    backButton.innerHTML = "← Back";
+    backButton.addEventListener("click", () => {
+        exitFn(false);
+    });
+    controlsHeaderDiv.appendChild(backButton);
+
+    let gameProgressDiv = document.createElement("div");
+    gameProgressDiv.id = "gameProgress";
+    gameProgressDiv.innerHTML = "52%";
+    controlsHeaderDiv.appendChild(gameProgressDiv);
+
+    let timerDiv = document.createElement("div");
+    timerDiv.id = "timer";
+    timerDiv.innerHTML = "0:00";
+    gameState.timer = setInterval(() => {
+        let now = new Date().getTime();
+        let diff = now - gameState.startDate;
+
+        let hours = Math.floor(diff / (1000 * 60 * 60));
+        let minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        let seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+        timerDiv.innerHTML = `${hours < 1 ? "" : hours.toString() + ":"}${hours < 1 ? minutes : minutes.toString().padStart(2, 0)}:${seconds.toString().padStart(2, 0)}`;
+    });
+    controlsHeaderDiv.appendChild(timerDiv);
+
+    // Game
     let gameDiv = document.createElement("div");
     gameDiv.id = "game";
-    document.body.appendChild(gameDiv);
+    outerBlockDiv.appendChild(gameDiv);
 
     // Top
     let topPartDiv = document.createElement("div");
@@ -274,13 +320,13 @@ function loadGame() {
         let colNumbersColDiv = document.createElement("div");
         colNumbersColDiv.classList.add("colNumbersCol");
         colNumbersDiv.appendChild(colNumbersColDiv);
-        colNumberCols.push(colNumbersColDiv);
+        gameState.colNumberCols.push(colNumbersColDiv);
 
-        for (let i = 0; i < colNumberStates[col].length; i++) {
+        for (let i = 0; i < gameState.colNumberStates[col].length; i++) {
             let numberDiv = document.createElement("div");
             numberDiv.classList.add("number");
             numberDiv.classList.add("colNumber");
-            numberDiv.innerHTML = colNumberStates[col][i].num;
+            numberDiv.innerHTML = gameState.colNumberStates[col][i].num;
             colNumbersColDiv.appendChild(numberDiv);
         }
     }
@@ -299,13 +345,13 @@ function loadGame() {
         let rowNumbersColDiv = document.createElement("div");
         rowNumbersColDiv.classList.add("rowNumbersCol");
         rowNumbersDiv.appendChild(rowNumbersColDiv);
-        rowNumberCols.push(rowNumbersColDiv);
+        gameState.rowNumberCols.push(rowNumbersColDiv);
 
-        for (let i = 0; i < rowNumberStates[row].length; i++) {
+        for (let i = 0; i < gameState.rowNumberStates[row].length; i++) {
             let numberDiv = document.createElement("div");
             numberDiv.classList.add("number");
             numberDiv.classList.add("rowNumber");
-            numberDiv.innerHTML = rowNumberStates[row][i].num;
+            numberDiv.innerHTML = gameState.rowNumberStates[row][i].num;
             rowNumbersColDiv.appendChild(numberDiv);
         }
     }
@@ -341,7 +387,7 @@ function loadGame() {
             rowDiv.appendChild(fieldDiv);
             rowFields.push(fieldDiv);
         }
-        fields.push(rowFields);
+        gameState.fields.push(rowFields);
     }
 
     for (let row = 0; row < dimensionSize; row++) {
@@ -349,71 +395,74 @@ function loadGame() {
         for (let col = 0; col < dimensionSize; col++) {
             rowStates.push(0);
         }
-        fieldStates.push(rowStates);
+        gameState.fieldStates.push(rowStates);
     }
 
     document.addEventListener("mouseup", _ => {
-        isDragging = false;
+        if (!gameState.isDragging) {
+            return;
+        }
+        gameState.isDragging = false;
         /* for (let i = 0; i < dimensionSize; i++) {
-            fieldStates[dragStartRow][i] = getState(dragStartRow, i);;
-            fieldStates[i][dragStartCol] = getState(i, dragStartCol);;
+            gameState.fieldStates[gameState.dragStartRow][i] = getState(gameState.dragStartRow, i);;
+            gameState.fieldStates[i][gameState.dragStartCol] = getState(i, gameState.dragStartCol);;
             updateNumberStates(i, i);
         } */
-        if (isDragHorizontal) {
-            for (let col = Math.min(dragStartCol, dragStartCol + dragDistance); col <= Math.max(dragStartCol, dragStartCol + dragDistance); col++) {
-                fieldStates[dragStartRow][col] = getState(dragStartRow, col);
-                updateNumberStates(dragStartRow, col);
+        if (gameState.isDragHorizontal) {
+            for (let col = Math.min(gameState.dragStartCol, gameState.dragStartCol + gameState.dragDistance); col <= Math.max(gameState.dragStartCol, gameState.dragStartCol + gameState.dragDistance); col++) {
+                gameState.fieldStates[gameState.dragStartRow][col] = getState(gameState.dragStartRow, col);
+                updateNumberStates(gameState.dragStartRow, col);
             }
         } else {
-            for (let row = Math.min(dragStartRow, dragStartRow + dragDistance); row <= Math.max(dragStartRow, dragStartRow + dragDistance); row++) {
-                fieldStates[row][dragStartCol] = getState(row, dragStartCol);
-                updateNumberStates(row, dragStartCol);
+            for (let row = Math.min(gameState.dragStartRow, gameState.dragStartRow + gameState.dragDistance); row <= Math.max(gameState.dragStartRow, gameState.dragStartRow + gameState.dragDistance); row++) {
+                gameState.fieldStates[row][gameState.dragStartCol] = getState(row, gameState.dragStartCol);
+                updateNumberStates(row, gameState.dragStartCol);
             }
         }
     });
 
     Array.from(document.getElementsByClassName("field")).forEach(x => {
         x.addEventListener("mouseenter", e => {
-            let fieldRect = fields[0][0].getBoundingClientRect();
+            let fieldRect = gameState.fields[0][0].getBoundingClientRect();
             let currentRow = Math.floor((e.clientY - fieldRect.y) / fieldRect.height);
             let currentCol = Math.floor((e.clientX - fieldRect.x) / fieldRect.width);
 
-            rowNumberCols[currentRow].classList.add("gameHighlight");
-            colNumberCols[currentCol].classList.add("gameHighlight");
+            gameState.rowNumberCols[currentRow].classList.add("gameHighlight");
+            gameState.colNumberCols[currentCol].classList.add("gameHighlight");
             for (let row = 0; row < 15; row++) {
                 if (row == currentRow) {
                     continue;
                 }
-                fields[row][currentCol].classList.add("gameHighlight");
+                gameState.fields[row][currentCol].classList.add("gameHighlight");
             }
 
             for (let col = 0; col < 15; col++) {
                 if (col == currentCol) {
                     continue;
                 }
-                fields[currentRow][col].classList.add("gameHighlight");
+                gameState.fields[currentRow][col].classList.add("gameHighlight");
             }
         });
 
         x.addEventListener("mouseleave", _ => {
-            for (let row of fields) {
+            for (let row of gameState.fields) {
                 for (let field of row) {
                     field.classList.remove("gameHighlight");
                 }
             }
-            for (let rowNumberCol of rowNumberCols) {
+            for (let rowNumberCol of gameState.rowNumberCols) {
                 rowNumberCol.classList.remove("gameHighlight");
             }
-            for (let colNumberCol of colNumberCols) {
+            for (let colNumberCol of gameState.colNumberCols) {
                 colNumberCol.classList.remove("gameHighlight");
             }
         });
 
         x.addEventListener("mousedown", e => {
-            if (isDragging || (e.button != 0 && e.button != 2)) {
+            if (gameState.isDragging || (e.button != 0 && e.button != 2)) {
                 return;
             }
-            let fieldRect = fields[0][0].getBoundingClientRect();
+            let fieldRect = gameState.fields[0][0].getBoundingClientRect();
             if (e.clientX < fieldRect.x || e.clientY < fieldRect.y
                 || e.clientX >= fieldRect.x + dimensionSize * fieldRect.width
                 || e.clientY >= fieldRect.y + dimensionSize * fieldRect.height) {
@@ -424,44 +473,44 @@ function loadGame() {
             let currentCol = Math.floor((e.clientX - fieldRect.x) / fieldRect.width);
 
             if (e.button == 0) {
-                if (fields[currentRow][currentCol].classList.contains("cross")) {
+                if (gameState.fields[currentRow][currentCol].classList.contains("cross")) {
                     return;
                 }
-                if (fields[currentRow][currentCol].classList.contains("square")) {
+                if (gameState.fields[currentRow][currentCol].classList.contains("square")) {
                     unfillField(currentRow, currentCol);
-                    isCreating = false;
+                    gameState.isCreating = false;
                 } else {
                     fillField(currentRow, currentCol);
-                    isCreating = true;
+                    gameState.isCreating = true;
                 }
-                dragFieldState = 1;
+                gameState.dragFieldState = 1;
             } else if (e.button == 2) {
-                if (fields[currentRow][currentCol].classList.contains("square")) {
+                if (gameState.fields[currentRow][currentCol].classList.contains("square")) {
                     return;
                 }
-                if (fields[currentRow][currentCol].classList.contains("cross")) {
+                if (gameState.fields[currentRow][currentCol].classList.contains("cross")) {
                     uncrossField(currentRow, currentCol);
-                    isCreating = false;
+                    gameState.isCreating = false;
                 } else {
                     crossField(currentRow, currentCol);
-                    isCreating = true;
+                    gameState.isCreating = true;
                 }
-                dragFieldState = 2;
+                gameState.dragFieldState = 2;
             }
 
-            isDragging = true;
-            dragStartRow = currentRow;
-            dragStartCol = currentCol;
-            hasChosenDirection = false;
-            lastDragDistance = 0;
-            dragDistance = 0;
+            gameState.isDragging = true;
+            gameState.dragStartRow = currentRow;
+            gameState.dragStartCol = currentCol;
+            gameState.hasChosenDirection = false;
+            gameState.lastDragDistance = 0;
+            gameState.dragDistance = 0;
         });
 
         x.addEventListener("mousemove", e => {
-            if (!isDragging || (e.button != 0 && e.button != 2)) {
+            if (!gameState.isDragging || (e.button != 0 && e.button != 2)) {
                 return;
             }
-            let fieldRect = fields[0][0].getBoundingClientRect();
+            let fieldRect = gameState.fields[0][0].getBoundingClientRect();
             if (e.clientX < fieldRect.x || e.clientY < fieldRect.y
                 || e.clientX >= fieldRect.x + dimensionSize * fieldRect.width
                 || e.clientY >= fieldRect.y + dimensionSize * fieldRect.height) {
@@ -471,52 +520,52 @@ function loadGame() {
             let currentRow = Math.floor((e.clientY - fieldRect.y) / fieldRect.height);
             let currentCol = Math.floor((e.clientX - fieldRect.x) / fieldRect.width);
 
-            if (!hasChosenDirection) {
-                if (dragStartCol != currentCol) {
-                    isDragHorizontal = true;
-                    hasChosenDirection = true;
-                } else if (dragStartRow != currentRow) {
-                    isDragHorizontal = false;
-                    hasChosenDirection = true;
+            if (!gameState.hasChosenDirection) {
+                if (gameState.dragStartCol != currentCol) {
+                    gameState.isDragHorizontal = true;
+                    gameState.hasChosenDirection = true;
+                } else if (gameState.dragStartRow != currentRow) {
+                    gameState.isDragHorizontal = false;
+                    gameState.hasChosenDirection = true;
                 } else {
                     return;
                 }
             }
 
-            if (isDragHorizontal) {
-                dragDistance = currentCol - dragStartCol;
+            if (gameState.isDragHorizontal) {
+                gameState.dragDistance = currentCol - gameState.dragStartCol;
             } else {
-                dragDistance = currentRow - dragStartRow;
+                gameState.dragDistance = currentRow - gameState.dragStartRow;
             }
 
-            if (dragDistance != lastDragDistance) {
-                let j = lastDragDistance;
-                if (Math.sign(lastDragDistance) != Math.sign(dragDistance)) {
+            if (gameState.dragDistance != gameState.lastDragDistance) {
+                let j = gameState.lastDragDistance;
+                if (Math.sign(gameState.lastDragDistance) != Math.sign(gameState.dragDistance)) {
                     j = 0;
-                } else if (Math.abs(lastDragDistance) - Math.abs(dragDistance) > 0) {
-                    j = dragDistance;
+                } else if (Math.abs(gameState.lastDragDistance) - Math.abs(gameState.dragDistance) > 0) {
+                    j = gameState.dragDistance;
                 }
 
-                let i = lastDragDistance;
+                let i = gameState.lastDragDistance;
                 while (i != j) {
-                    if (isDragHorizontal) {
-                        if (isCreating) {
-                            if (fieldStates[dragStartRow][dragStartCol + i] != dragFieldState) {
-                                fields[dragStartRow][dragStartCol + i].classList.remove(getStateClass(dragFieldState));
+                    if (gameState.isDragHorizontal) {
+                        if (gameState.isCreating) {
+                            if (gameState.fieldStates[gameState.dragStartRow][gameState.dragStartCol + i] != gameState.dragFieldState) {
+                                gameState.fields[gameState.dragStartRow][gameState.dragStartCol + i].classList.remove(getStateClass(gameState.dragFieldState));
                             }
                         } else {
-                            if (fieldStates[dragStartRow][dragStartCol + i] == dragFieldState) {
-                                fields[dragStartRow][dragStartCol + i].classList.add(getStateClass(dragFieldState));
+                            if (gameState.fieldStates[gameState.dragStartRow][gameState.dragStartCol + i] == gameState.dragFieldState) {
+                                gameState.fields[gameState.dragStartRow][gameState.dragStartCol + i].classList.add(getStateClass(gameState.dragFieldState));
                             }
                         }
                     } else {
-                        if (isCreating) {
-                            if (fieldStates[dragStartRow + i][dragStartCol] != dragFieldState) {
-                                fields[dragStartRow + i][dragStartCol].classList.remove(getStateClass(dragFieldState));
+                        if (gameState.isCreating) {
+                            if (gameState.fieldStates[gameState.dragStartRow + i][gameState.dragStartCol] != gameState.dragFieldState) {
+                                gameState.fields[gameState.dragStartRow + i][gameState.dragStartCol].classList.remove(getStateClass(gameState.dragFieldState));
                             }
                         } else {
-                            if (fieldStates[dragStartRow + i][dragStartCol] == dragFieldState) {
-                                fields[dragStartRow + i][dragStartCol].classList.add(getStateClass(dragFieldState));
+                            if (gameState.fieldStates[gameState.dragStartRow + i][gameState.dragStartCol] == gameState.dragFieldState) {
+                                gameState.fields[gameState.dragStartRow + i][gameState.dragStartCol].classList.add(getStateClass(gameState.dragFieldState));
                             }
                         }
                     }
@@ -528,48 +577,48 @@ function loadGame() {
                     }
                 }
 
-                i = lastDragDistance;
-                if (Math.sign(lastDragDistance) != Math.sign(dragDistance)) {
+                i = gameState.lastDragDistance;
+                if (Math.sign(gameState.lastDragDistance) != Math.sign(gameState.dragDistance)) {
                     i = 0;
                 } else {
-                    if (Math.abs(lastDragDistance) - Math.abs(dragDistance) > 0) {
-                        i = dragDistance; // Do not create any fields
+                    if (Math.abs(gameState.lastDragDistance) - Math.abs(gameState.dragDistance) > 0) {
+                        i = gameState.dragDistance; // Do not create any fields
                     }
                 }
-                while (i != dragDistance) {
-                    if (i < dragDistance) {
+                while (i != gameState.dragDistance) {
+                    if (i < gameState.dragDistance) {
                         i += 1;
                     } else {
                         i -= 1;
                     }
 
-                    if (isDragHorizontal) {
-                        if (isCreating) {
-                            if (fieldStates[dragStartRow][dragStartCol + i] == 0) {
-                                fields[dragStartRow][dragStartCol + i].classList.add(getStateClass(dragFieldState));
+                    if (gameState.isDragHorizontal) {
+                        if (gameState.isCreating) {
+                            if (gameState.fieldStates[gameState.dragStartRow][gameState.dragStartCol + i] == 0) {
+                                gameState.fields[gameState.dragStartRow][gameState.dragStartCol + i].classList.add(getStateClass(gameState.dragFieldState));
                             }
                         } else {
-                            if (fieldStates[dragStartRow][dragStartCol + i] == dragFieldState) {
-                                fields[dragStartRow][dragStartCol + i].classList.remove(getStateClass(dragFieldState));
+                            if (gameState.fieldStates[gameState.dragStartRow][gameState.dragStartCol + i] == gameState.dragFieldState) {
+                                gameState.fields[gameState.dragStartRow][gameState.dragStartCol + i].classList.remove(getStateClass(gameState.dragFieldState));
                             }
                         }
                     } else {
-                        if (isCreating) {
-                            if (fieldStates[dragStartRow + i][dragStartCol] == 0) {
-                                fields[dragStartRow + i][dragStartCol].classList.add(getStateClass(dragFieldState));
+                        if (gameState.isCreating) {
+                            if (gameState.fieldStates[gameState.dragStartRow + i][gameState.dragStartCol] == 0) {
+                                gameState.fields[gameState.dragStartRow + i][gameState.dragStartCol].classList.add(getStateClass(gameState.dragFieldState));
                             }
                         } else {
-                            if (fieldStates[dragStartRow + i][dragStartCol] == dragFieldState) {
-                                fields[dragStartRow + i][dragStartCol].classList.remove(getStateClass(dragFieldState));
+                            if (gameState.fieldStates[gameState.dragStartRow + i][gameState.dragStartCol] == gameState.dragFieldState) {
+                                gameState.fields[gameState.dragStartRow + i][gameState.dragStartCol].classList.remove(getStateClass(gameState.dragFieldState));
                             }
                         }
                     }
                 }
 
-                if (dragDistance == 0) {
-                    hasChosenDirection = false;
+                if (gameState.dragDistance == 0) {
+                    gameState.hasChosenDirection = false;
                 }
-                lastDragDistance = dragDistance;
+                gameState.lastDragDistance = gameState.dragDistance;
             }
         });
     });
@@ -579,23 +628,23 @@ function updateNumberStates(row, col) {
     // Column
     let sequence = [];
     for (let i = 0; i < 15; i++) {
-        sequence.push(fieldStates[i][col] == 1);
+        sequence.push(gameState.fieldStates[i][col] == 1);
     }
     let nums = getSequenceNumbers(sequence);
 
     let lastIndex = nums.length;
-    for (let i = 0; i < colNumberStates[col].length; i++) { // Forwards
-        if (i < nums.length && nums[i] == colNumberStates[col][i].num) {
+    for (let i = 0; i < gameState.colNumberStates[col].length; i++) { // Forwards
+        if (i < nums.length && nums[i] == gameState.colNumberStates[col][i].num) {
             strikeColNumber(col, i);
         } else {
             lastIndex = i;
             break;
         }
     }
-    let numLength = colNumberStates[col].length;
+    let numLength = gameState.colNumberStates[col].length;
     let matching = true;
     for (let i = 0; i < numLength - lastIndex; i++) { // Backwards
-        if (matching && i < nums.length - lastIndex && nums[nums.length - i - 1] == colNumberStates[col][numLength - i - 1].num) {
+        if (matching && i < nums.length - lastIndex && nums[nums.length - i - 1] == gameState.colNumberStates[col][numLength - i - 1].num) {
             strikeColNumber(col, numLength - i - 1);
         } else {
             unstrikeColNumber(col, numLength - i - 1);
@@ -606,23 +655,23 @@ function updateNumberStates(row, col) {
     // Row
     sequence = [];
     for (let i = 0; i < 15; i++) {
-        sequence.push(fieldStates[row][i] == 1);
+        sequence.push(gameState.fieldStates[row][i] == 1);
     }
     nums = getSequenceNumbers(sequence);
 
     lastIndex = nums.length;
-    for (let i = 0; i < rowNumberStates[row].length; i++) { // Forwards
-        if (i < nums.length && nums[i] == rowNumberStates[row][i].num) {
+    for (let i = 0; i < gameState.rowNumberStates[row].length; i++) { // Forwards
+        if (i < nums.length && nums[i] == gameState.rowNumberStates[row][i].num) {
             strikeRowNumber(row, i);
         } else {
             lastIndex = i;
             break;
         }
     }
-    numLength = rowNumberStates[row].length;
+    numLength = gameState.rowNumberStates[row].length;
     matching = true;
     for (let i = 0; i < numLength - lastIndex; i++) { // Backwards
-        if (matching && i < nums.length - lastIndex && nums[nums.length - i - 1] == rowNumberStates[row][numLength - i - 1].num) {
+        if (matching && i < nums.length - lastIndex && nums[nums.length - i - 1] == gameState.rowNumberStates[row][numLength - i - 1].num) {
             strikeRowNumber(row, numLength - i - 1);
         } else {
             unstrikeRowNumber(row, numLength - i - 1);
@@ -632,50 +681,50 @@ function updateNumberStates(row, col) {
 }
 
 function strikeColNumber(col, index) {
-    colNumberStates[col][index].striked = true;
-    colNumberCols[col].childNodes[index].classList.add("striked");
+    gameState.colNumberStates[col][index].striked = true;
+    gameState.colNumberCols[col].childNodes[index].classList.add("striked");
 }
 
 function unstrikeColNumber(col, index) {
-    colNumberStates[col][index].striked = false;
-    colNumberCols[col].childNodes[index].classList.remove("striked");
+    gameState.colNumberStates[col][index].striked = false;
+    gameState.colNumberCols[col].childNodes[index].classList.remove("striked");
 }
 
 function strikeRowNumber(row, index) {
-    rowNumberStates[row][index].striked = true;
-    rowNumberCols[row].childNodes[index].classList.add("striked");
+    gameState.rowNumberStates[row][index].striked = true;
+    gameState.rowNumberCols[row].childNodes[index].classList.add("striked");
 }
 
 function unstrikeRowNumber(row, index) {
-    rowNumberStates[row][index].striked = false;
-    rowNumberCols[row].childNodes[index].classList.remove("striked");
+    gameState.rowNumberStates[row][index].striked = false;
+    gameState.rowNumberCols[row].childNodes[index].classList.remove("striked");
 }
 
 function fillField(row, col) {
-    fields[row][col].classList.add("square");
-    fieldStates[row][col] = 1;
+    gameState.fields[row][col].classList.add("square");
+    gameState.fieldStates[row][col] = 1;
 }
 
 function crossField(row, col) {
-    fields[row][col].classList.add("cross");
-    fieldStates[row][col] = 2;
+    gameState.fields[row][col].classList.add("cross");
+    gameState.fieldStates[row][col] = 2;
 }
 
 function unfillField(row, col) {
-    fields[row][col].classList.remove("square");
-    fieldStates[row][col] = 0;
+    gameState.fields[row][col].classList.remove("square");
+    gameState.fieldStates[row][col] = 0;
 }
 
 function uncrossField(row, col) {
-    fields[row][col].classList.remove("cross");
-    fieldStates[row][col] = 0;
+    gameState.fields[row][col].classList.remove("cross");
+    gameState.fieldStates[row][col] = 0;
 }
 
 function getState(row, col) {
-    if (fields[row][col].classList.contains("square")) {
+    if (gameState.fields[row][col].classList.contains("square")) {
         return 1;
     }
-    if (fields[row][col].classList.contains("cross")) {
+    if (gameState.fields[row][col].classList.contains("cross")) {
         return 2;
     }
     return 0;

@@ -86,6 +86,10 @@ function clickedPreview(row, col) {
     let board = parseGameString("A+AIfAHWAMcBw+eMexIGLwh7+eGeZhhIMJCQkA");
 
     document.body.innerHTML = "";
+    gameState = getDefaultGameState();
     loadNumberStates(board);
-    loadGame();
+    loadGame((finished) => {
+        document.body.innerHTML = "";
+        loadOverview();
+    });
 }
