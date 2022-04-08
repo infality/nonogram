@@ -27,7 +27,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    height: 20vh;
+    height: 10vh;
     width: 80vw;
 }
 
@@ -70,6 +70,10 @@ body {
     cursor: pointer;
 }
 
+.gamePreviewSolved {
+    background-color: #181818;
+}
+
 .gamePreview:hover {
     background-color: #333;
 }
@@ -102,7 +106,7 @@ body {
 }
 
 #gameProgress {
-    color: #999;
+    color: green;
     font-size: 1.5em;
     padding: 0.2em 0.6em;
 }

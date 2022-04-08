@@ -4,7 +4,9 @@ let gameState = {};
 function getDefaultGameState() {
     let state = {};
     state.startDate = new Date().getTime();
+    state.endDate = null;
     state.timer = null;
+    state.finished = false;
     state.fields = []
     state.colNumberCols = [];
     state.rowNumberCols = [];
@@ -277,13 +279,12 @@ function loadGame(exitFn) {
     backButton.id = "backButton";
     backButton.innerHTML = "← Back";
     backButton.addEventListener("click", () => {
-        exitFn(false);
+        exitFn(gameState.finished);
     });
     controlsHeaderDiv.appendChild(backButton);
 
     let gameProgressDiv = document.createElement("div");
     gameProgressDiv.id = "gameProgress";
-    gameProgressDiv.innerHTML = "52%";
     controlsHeaderDiv.appendChild(gameProgressDiv);
 
     let timerDiv = document.createElement("div");
@@ -398,16 +399,15 @@ function loadGame(exitFn) {
         gameState.fieldStates.push(rowStates);
     }
 
+    for (let i = 0; i < dimensionSize; i++) {
+        updateNumberStates(i, i);
+    }
+
     document.addEventListener("mouseup", _ => {
         if (!gameState.isDragging) {
             return;
         }
         gameState.isDragging = false;
-        /* for (let i = 0; i < dimensionSize; i++) {
-            gameState.fieldStates[gameState.dragStartRow][i] = getState(gameState.dragStartRow, i);;
-            gameState.fieldStates[i][gameState.dragStartCol] = getState(i, gameState.dragStartCol);;
-            updateNumberStates(i, i);
-        } */
         if (gameState.isDragHorizontal) {
             for (let col = Math.min(gameState.dragStartCol, gameState.dragStartCol + gameState.dragDistance); col <= Math.max(gameState.dragStartCol, gameState.dragStartCol + gameState.dragDistance); col++) {
                 gameState.fieldStates[gameState.dragStartRow][col] = getState(gameState.dragStartRow, col);
@@ -418,6 +418,27 @@ function loadGame(exitFn) {
                 gameState.fieldStates[row][gameState.dragStartCol] = getState(row, gameState.dragStartCol);
                 updateNumberStates(row, gameState.dragStartCol);
             }
+        }
+
+        let finishedTest = true;
+        for (let i = 0; i < dimensionSize; i++) {
+            if (gameState.rowNumberStates[i].some(x => !x.striked) || gameState.colNumberStates[i].some(x => !x.striked)) {
+                finishedTest = false;
+                break;
+            }
+        }
+        if (finishedTest) {
+            gameState.finished = true;
+            gameState.endDate = new Date().getTime();
+            clearInterval(gameState.timer);
+            gameState.timer = null;
+
+            let diff = gameState.endDate - gameState.startDate;
+            let hours = Math.floor(diff / (1000 * 60 * 60));
+            let minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            let seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            document.getElementById("timer").innerHTML = `${hours < 1 ? "" : hours.toString() + ":"}${hours < 1 ? minutes : minutes.toString().padStart(2, 0)}:${seconds.toString().padStart(2, 0)}`;
+            document.getElementById("gameProgress").innerHTML = "Done!";
         }
     });
 
@@ -633,10 +654,12 @@ function updateNumberStates(row, col) {
     let nums = getSequenceNumbers(sequence);
 
     let lastIndex = nums.length;
+    let isMissingFields = false;
     for (let i = 0; i < gameState.colNumberStates[col].length; i++) { // Forwards
         if (i < nums.length && nums[i] == gameState.colNumberStates[col][i].num) {
             strikeColNumber(col, i);
         } else {
+            isMissingFields = true;
             lastIndex = i;
             break;
         }
@@ -651,6 +674,13 @@ function updateNumberStates(row, col) {
             matching = false;
         }
     }
+    if (!isMissingFields) {
+        for (let i = 0; i < dimensionSize; i++) {
+            if (gameState.fieldStates[i][col] == 0) {
+                crossField(i, col);
+            }
+        }
+    }
 
     // Row
     sequence = [];
@@ -660,10 +690,12 @@ function updateNumberStates(row, col) {
     nums = getSequenceNumbers(sequence);
 
     lastIndex = nums.length;
+    isMissingFields = false;
     for (let i = 0; i < gameState.rowNumberStates[row].length; i++) { // Forwards
         if (i < nums.length && nums[i] == gameState.rowNumberStates[row][i].num) {
             strikeRowNumber(row, i);
         } else {
+            isMissingFields = true;
             lastIndex = i;
             break;
         }
@@ -676,6 +708,13 @@ function updateNumberStates(row, col) {
         } else {
             unstrikeRowNumber(row, numLength - i - 1);
             matching = false;
+        }
+    }
+    if (!isMissingFields) {
+        for (let i = 0; i < dimensionSize; i++) {
+            if (gameState.fieldStates[row][i] == 0) {
+                crossField(row, i);
+            }
         }
     }
 }
