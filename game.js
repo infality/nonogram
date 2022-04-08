@@ -739,32 +739,3 @@ function getStateClass(state) {
     }
     throw "Unknown state";
 }
-
-function parseGameString(base64) {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-    let fields = [];
-    for (let i = 0; i < base64.length; i++) {
-        let val = chars.indexOf(base64[i]);
-        fields.push((val & 32) > 0);
-        fields.push((val & 16) > 0);
-        fields.push((val & 8) > 0);
-        fields.push((val & 4) > 0);
-        fields.push((val & 2) > 0);
-        fields.push((val & 1) > 0);
-    }
-
-    if (fields.length < 225) {
-        throw "Game string too short";
-    }
-
-    let board = [];
-    for (let i = 0; i < 15; i++) {
-        board.push([]);
-        for (let j = 0; j < 15; j++) {
-            board[i][j] = fields[i * 15 + j];
-        }
-    }
-    console.log(board);
-    return board;
-}
